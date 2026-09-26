@@ -89,6 +89,7 @@ android {
     }
     quest {
       applicationId 'io.github.parkerlreed.retroarchxr'
+      versionName "${getManifestAttribute("versionName")}-xr1"
       minSdkVersion 29
       resValue "string", "app_name", "RetroArch XR"
       buildConfigField "boolean", "PLAY_STORE_BUILD", "false"
