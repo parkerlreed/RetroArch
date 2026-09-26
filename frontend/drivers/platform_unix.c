@@ -49,6 +49,9 @@
 
 #ifdef ANDROID
 #include <android/log.h>
+#ifdef HAVE_XR
+#include <android/native_window_jni.h>
+#endif
 #include <sys/system_properties.h>
 #ifdef HAVE_SAF
 #include <vfs/vfs_implementation_saf.h>
@@ -540,8 +543,21 @@ static void onLowMemory(ANativeActivity* activity)
          activity->instance, APP_CMD_LOW_MEMORY);
 }
 
+#ifdef HAVE_XR
+/* In XR, RetroArch draws into the headset renderer's SurfaceTexture
+ * instead of the activity window, which is kept for falling back. */
+static bool android_xr_enabled                = false;
+static ANativeWindow *android_activity_window = NULL;
+static ANativeWindow *android_xr_window       = NULL;
+#endif
+
 static void onWindowFocusChanged(ANativeActivity* activity, int focused)
 {
+#ifdef HAVE_XR
+   /* The headset compositor holds focus, not the activity window. */
+   if (android_xr_enabled)
+      return;
+#endif
    android_app_write_cmd((struct android_app*)activity->instance,
          focused ? APP_CMD_GAINED_FOCUS : APP_CMD_LOST_FOCUS);
 }
@@ -549,12 +565,22 @@ static void onWindowFocusChanged(ANativeActivity* activity, int focused)
 static void onNativeWindowCreated(ANativeActivity* activity,
       ANativeWindow* window)
 {
+#ifdef HAVE_XR
+   android_activity_window = window;
+   if (android_xr_enabled)
+      return;
+#endif
    android_app_set_window((struct android_app*)activity->instance, window);
 }
 
 static void onNativeWindowDestroyed(ANativeActivity* activity,
       ANativeWindow* window)
 {
+#ifdef HAVE_XR
+   android_activity_window = NULL;
+   if (android_xr_enabled)
+      return;
+#endif
    android_app_set_window((struct android_app*)activity->instance, NULL);
 }
 
@@ -1635,6 +1661,43 @@ JNIEXPORT void JNICALL Java_com_retroarch_browser_retroactivity_RetroActivityCom
       "RetroArch", "[ENV] Storage permission resolved (granted: %d).\n",
       granted ? 1 : 0);
 }
+
+#ifdef HAVE_XR
+/* Called on the UI thread, before the activity window arrives. */
+JNIEXPORT void JNICALL Java_com_retroarch_browser_retroactivity_XrSession_nativeSetXrEnabled
+      (JNIEnv *env, jclass clazz, jboolean enabled)
+{
+   struct android_app *android_app = g_android_early;
+
+   android_xr_enabled = enabled ? true : false;
+   if (!android_xr_enabled && android_app)
+      android_app_set_window(android_app, android_activity_window);
+}
+
+/* Synchronous like the window callbacks: once this returns with NULL,
+ * the app thread no longer holds the previous surface. */
+JNIEXPORT void JNICALL Java_com_retroarch_browser_retroactivity_XrSession_nativeSetXrSurface
+      (JNIEnv *env, jclass clazz, jobject surface)
+{
+   struct android_app *android_app = g_android_early;
+   ANativeWindow *old_window       = android_xr_window;
+
+   if (!android_app)
+      return;
+
+   android_xr_window = surface ? ANativeWindow_fromSurface(env, surface) : NULL;
+   android_app_set_window(android_app, android_xr_window);
+   if (old_window)
+      ANativeWindow_release(old_window);
+}
+
+JNIEXPORT void JNICALL Java_com_retroarch_browser_retroactivity_XrSession_nativeToggleMenu
+      (JNIEnv *env, jclass clazz)
+{
+   if (g_android_early)
+      android_app_write_cmd(g_android_early, APP_CMD_XR_MENU_TOGGLE);
+}
+#endif
 
 JNIEXPORT void JNICALL Java_com_retroarch_browser_retroactivity_RetroActivityCommon_safTreeAdded
       (JNIEnv *env, jobject this_obj, jstring tree_obj)

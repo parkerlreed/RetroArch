@@ -16,6 +16,10 @@ HAVE_BUILTINSMBCLIENT := 1
 INCFLAGS    :=
 DEFINES     :=
 
+ifeq ($(HAVE_XR),1)
+   DEFINES += -DHAVE_XR
+endif
+
 LIBRETRO_COMM_DIR := $(RARCH_DIR)/libretro-common
 DEPS_DIR          := $(RARCH_DIR)/deps
 
@@ -274,3 +278,17 @@ ifneq ($(PLAY_STORE_BUILD),1)
 endif
 
 include $(BUILD_SHARED_LIBRARY)
+
+# Quest headset renderer; RetroArch draws into its SurfaceTexture.
+ifeq ($(HAVE_XR),1)
+include $(CLEAR_VARS)
+XR_DIR           := ../../phoenix-xr/jni
+LOCAL_MODULE     := retroarch-xr
+LOCAL_SRC_FILES  := $(XR_DIR)/xr_app.cpp $(XR_DIR)/crt_scene.cpp $(XR_DIR)/tv_model.cpp
+LOCAL_CPPFLAGS   := -std=c++17 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers \
+                    -DXR_USE_PLATFORM_ANDROID -DXR_USE_GRAPHICS_API_OPENGL_ES
+LOCAL_SHARED_LIBRARIES := openxr_loader
+LOCAL_LDLIBS     := -landroid -lEGL -lGLESv3 -llog
+include $(BUILD_SHARED_LIBRARY)
+$(call import-module,prefab/OpenXR)
+endif

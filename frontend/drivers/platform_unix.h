@@ -383,6 +383,11 @@ enum
    APP_CMD_DESTROY,
 
    APP_CMD_REINIT_DONE
+#ifdef HAVE_XR
+   ,
+   /* The headset TV's power button. */
+   APP_CMD_XR_MENU_TOGGLE
+#endif
 };
 
 /* Every macro below is wrapped in do/while(0). Without it the trailing

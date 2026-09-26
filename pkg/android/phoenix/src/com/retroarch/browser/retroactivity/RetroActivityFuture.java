@@ -65,6 +65,7 @@ public final class RetroActivityFuture extends RetroActivityCamera {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    XrSession.onCreate(this);
     
     isRunning = true;
     mDecorView = getWindow().getDecorView();
@@ -241,6 +242,7 @@ public final class RetroActivityFuture extends RetroActivityCamera {
 
   @Override
   public void onDestroy() {
+    XrSession.onDestroy(this);
     super.onDestroy();
     isRunning = false;
   }

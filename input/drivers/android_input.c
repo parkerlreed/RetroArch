@@ -794,6 +794,11 @@ static void android_input_poll_main_cmd(void)
 
    switch (cmd)
    {
+#ifdef HAVE_XR
+      case APP_CMD_XR_MENU_TOGGLE:
+         command_event(CMD_EVENT_MENU_TOGGLE, NULL);
+         break;
+#endif
       case APP_CMD_REINIT_DONE:
          slock_lock(android_app->mutex);
 

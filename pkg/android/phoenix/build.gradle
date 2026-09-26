@@ -33,6 +33,7 @@ android {
   buildFeatures {
     buildConfig true
     resValues true
+    prefab true
   }
 
   ndkVersion "29.0.14206865"
@@ -84,6 +85,23 @@ android {
       dimension "variant"
       ndk {
         abiFilters 'armeabi-v7a', 'x86'
+      }
+    }
+    quest {
+      applicationId 'io.github.parkerlreed.retroarchxr'
+      minSdkVersion 29
+      resValue "string", "app_name", "RetroArch XR"
+      buildConfigField "boolean", "PLAY_STORE_BUILD", "false"
+
+      dimension "variant"
+      ndk {
+        abiFilters 'arm64-v8a'
+      }
+
+      externalNativeBuild {
+        ndkBuild {
+          arguments "-j${Runtime.runtime.availableProcessors()}", "HAVE_XR=1"
+        }
       }
     }
     playStoreNormal {
@@ -141,20 +159,25 @@ android {
       res.srcDirs = ['res', '../phoenix-common/res']
     }
     normal {
-      java.srcDirs += ['../play-core-stub']
+      java.srcDirs += ['../play-core-stub', '../xr-stub']
     }
     aarch64 {
-      java.srcDirs += ['../play-core-stub']
+      java.srcDirs += ['../play-core-stub', '../xr-stub']
       res.srcDirs = ['res', 'res64']
     }
     ra32 {
-      java.srcDirs += ['../play-core-stub']
+      java.srcDirs += ['../play-core-stub', '../xr-stub']
+    }
+    quest {
+      java.srcDirs += ['../play-core-stub', '../xr-impl']
+      res.srcDirs = ['res', 'res64']
+      manifest.srcFile 'quest/AndroidManifest.xml'
     }
     playStoreNormal {
-      java.srcDirs += ['../play-core-impl']
+      java.srcDirs += ['../play-core-impl', '../xr-stub']
     }
     playStorePlus {
-      java.srcDirs += ['../play-core-impl']
+      java.srcDirs += ['../play-core-impl', '../xr-stub']
     }
   }
 
@@ -193,6 +216,7 @@ def playFeatureDelivery = 'com.google.android.play:feature-delivery:2.1.0'
 def playAssetDelivery = 'com.google.android.play:asset-delivery:2.2.2'
 
 dependencies {
+  questImplementation 'org.khronos.openxr:openxr_loader_for_android:1.1.63'
   playStoreNormalImplementation playFeatureDelivery
   playStoreNormalImplementation playAssetDelivery
   playStorePlusImplementation playFeatureDelivery
